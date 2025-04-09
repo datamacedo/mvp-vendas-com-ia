@@ -1,5 +1,7 @@
+import streamlit as st
 from pandasai import SmartDataframe
 from pandasai.llm.openai import OpenAI
+import pandas as pd
 
 st.header("💬 Faça uma pergunta em linguagem natural")
 
