@@ -3,3 +3,5 @@ pandas
 pandasai
 openai
 matplotlib
+pyyaml
+
