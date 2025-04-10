@@ -5,12 +5,13 @@ from pandasai import SmartDataframe
 from pandasai.llm.openai import OpenAI
 from sklearn.linear_model import LinearRegression
 
-st.set_page_config(page_title="Assistente de Vendas IA", layout="wide")
-st.title("🤖 Assistente de Vendas com IA")
+st.set_page_config(page_title="Analista de Dados Comerciais", layout="wide")
+st.title("🤖 Analista de Dados Comerciais")
 
 # ⬇️ Carregando os dados
 df = pd.read_csv("vendas_200k.csv")
 df['data_venda'] = pd.to_datetime(df['data_venda'])
+df['ano_mes'] = df['data_venda'].dt.to_period('M').astype(str)
 
 # 🔁 Histórico de perguntas
 if "historico" not in st.session_state:
@@ -25,47 +26,44 @@ if pergunta:
     llm = OpenAI(api_token=api_key)
     usar_ia = True
 
-    # 🔍 Detecção de análise automática
     if "mensal" in pergunta_lower or "comparativo" in pergunta_lower or "crescimento" in pergunta_lower:
-        df['ano_mes'] = df['data_venda'].dt.to_period('M').astype(str)
-        vendas_mensais = df.groupby('ano_mes')['valor_venda'].sum().reset_index()
-        vendas_mensais['variação_%'] = vendas_mensais['valor_venda'].pct_change().fillna(0) * 100
+        vendas_mensais = df.groupby('ano_mes')['valor'].sum().reset_index()
+        vendas_mensais['variação_%'] = vendas_mensais['valor'].pct_change().fillna(0) * 100
 
         fig, ax = plt.subplots()
-        ax.plot(vendas_mensais['ano_mes'], vendas_mensais['valor_venda'], marker='o')
+        ax.plot(vendas_mensais['ano_mes'], vendas_mensais['valor'], marker='o')
         plt.xticks(rotation=45)
         st.pyplot(fig)
         st.dataframe(vendas_mensais)
 
         st.markdown(f"""
-        ✅ **Mês com menor venda:** {vendas_mensais.loc[vendas_mensais['valor_venda'].idxmin()]['ano_mes']}  
+        ✅ **Mês com menor venda:** {vendas_mensais.loc[vendas_mensais['valor'].idxmin()]['ano_mes']}  
         🔼 **Maior crescimento:** {vendas_mensais.loc[vendas_mensais['variação_%'].idxmax()]['ano_mes']}
         """)
         resposta = "Análise mensal exibida com sucesso!"
         usar_ia = False
 
     elif "média" in pergunta_lower:
-        media_geral = df['valor_venda'].mean()
+        media_geral = df['valor'].mean()
         st.metric(label="📊 Média Geral de Vendas", value=f"R$ {media_geral:,.2f}")
         resposta = f"A média geral das vendas é R$ {media_geral:,.2f}"
         usar_ia = False
 
     elif "top" in pergunta_lower or "mais vendidos" in pergunta_lower:
-        top = df.groupby("produto")["valor_venda"].sum().sort_values(ascending=False).head(10)
-        st.subheader("🏆 Top 10 Produtos Mais Vendidos")
+        top = df.groupby("modelo")["valor"].sum().sort_values(ascending=False).head(10)
+        st.subheader("🏆 Top 10 Modelos Mais Vendidos")
         st.bar_chart(top)
-        resposta = "Top 10 produtos mais vendidos exibidos!"
+        resposta = "Top 10 modelos mais vendidos exibidos!"
         usar_ia = False
 
     elif "meta" in pergunta_lower:
-        df['ano_mes'] = df['data_venda'].dt.to_period('M').astype(str)
-        vendas = df.groupby('ano_mes')['valor_venda'].sum().reset_index()
+        vendas = df.groupby('ano_mes')['valor'].sum().reset_index()
         vendas['meta'] = 500000
-        vendas['atingiu_meta'] = vendas['valor_venda'] >= vendas['meta']
+        vendas['atingiu_meta'] = vendas['valor'] >= vendas['meta']
         st.dataframe(vendas)
 
         fig, ax = plt.subplots()
-        ax.plot(vendas['ano_mes'], vendas['valor_venda'], label="Realizado", marker='o')
+        ax.plot(vendas['ano_mes'], vendas['valor'], label="Realizado", marker='o')
         ax.plot(vendas['ano_mes'], vendas['meta'], label="Meta", linestyle='--')
         ax.legend()
         plt.xticks(rotation=45)
@@ -74,18 +72,17 @@ if pergunta:
         usar_ia = False
 
     elif "recomenda" in pergunta_lower:
-        produto_recomendado = df.groupby("produto")["valor_venda"].sum().sort_values(ascending=False).index[0]
-        resposta = f"💡 Recomendação: Invista mais no produto **{produto_recomendado}**, ele tem o maior volume de vendas."
+        produto_recomendado = df.groupby("modelo")["valor"].sum().sort_values(ascending=False).index[0]
+        resposta = f"💡 Recomendação: Invista mais no modelo **{produto_recomendado}**, ele tem o maior volume de vendas."
         st.success(resposta)
         usar_ia = False
 
     elif "previsão" in pergunta_lower:
-        df['ano_mes'] = df['data_venda'].dt.to_period('M').astype(str)
-        vendas = df.groupby('ano_mes')['valor_venda'].sum().reset_index()
+        vendas = df.groupby('ano_mes')['valor'].sum().reset_index()
         vendas['indice'] = range(len(vendas))
 
         modelo = LinearRegression()
-        modelo.fit(vendas[['indice']], vendas['valor_venda'])
+        modelo.fit(vendas[['indice']], vendas['valor'])
 
         futuro = pd.DataFrame({'indice': [len(vendas), len(vendas)+1, len(vendas)+2]})
         previsao = modelo.predict(futuro)
@@ -95,7 +92,7 @@ if pergunta:
             st.markdown(f"Mês {i+1}: **R$ {valor:,.2f}**")
 
         fig, ax = plt.subplots()
-        ax.plot(vendas['ano_mes'], vendas['valor_venda'], label="Histórico", marker='o')
+        ax.plot(vendas['ano_mes'], vendas['valor'], label="Histórico", marker='o')
         ax.plot(['+1', '+2', '+3'], previsao, label="Previsão", marker='x')
         ax.legend()
         st.pyplot(fig)
@@ -103,17 +100,17 @@ if pergunta:
         resposta = "Previsão gerada com modelo linear simples."
         usar_ia = False
 
-    # 🧠 Caso não detecte nenhum padrão: usa IA
+    # 🧠 IA como fallback
     if usar_ia:
         sdf = SmartDataframe(df, config={"llm": llm, "enable_plotting": True})
         resposta = sdf.chat(pergunta)
         st.success("Resposta da IA:")
         st.write(resposta)
 
-    # 🗃️ Guardar no histórico
+    # 🗃️ Histórico
     st.session_state.historico.append((pergunta, resposta))
 
-# 📜 Histórico de Perguntas e Respostas
+# 📜 Histórico
 if st.session_state.historico:
     st.markdown("### 🗂️ Histórico de Perguntas")
     for i, (perg, resp) in enumerate(reversed(st.session_state.historico), 1):
