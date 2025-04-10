@@ -6,6 +6,7 @@ scikit-learn
 openai
 pandasai
 python-dotenv
+pyyaml
 
 
 
