@@ -11,6 +11,13 @@ st.title("🤖 Analista de Dados Comerciais")
 # ⬇️ Carregando os dados
 df = pd.read_csv("vendas_200k.csv")
 df['data_venda'] = pd.to_datetime(df['data_venda'])
+
+# 🔢 Criando colunas auxiliares para facilitar análises
+df['ano'] = df['data_venda'].dt.year
+df['mes'] = df['data_venda'].dt.month
+df['mes_nome'] = df['data_venda'].dt.strftime('%B')
+df['dia'] = df['data_venda'].dt.day
+df['dia_nome'] = df['data_venda'].dt.strftime('%A')
 df['ano_mes'] = df['data_venda'].dt.to_period('M').astype(str)
 
 # 🔁 Histórico de perguntas
@@ -30,8 +37,11 @@ if pergunta:
         vendas_mensais = df.groupby('ano_mes')['valor'].sum().reset_index()
         vendas_mensais['variação_%'] = vendas_mensais['valor'].pct_change().fillna(0) * 100
 
-        fig, ax = plt.subplots()
+        fig, ax = plt.subplots(figsize=(10, 4))
         ax.plot(vendas_mensais['ano_mes'], vendas_mensais['valor'], marker='o')
+        ax.set_title("Vendas Mensais")
+        ax.set_xlabel("Ano/Mês")
+        ax.set_ylabel("Valor Total")
         plt.xticks(rotation=45)
         st.pyplot(fig)
         st.dataframe(vendas_mensais)
@@ -62,7 +72,7 @@ if pergunta:
         vendas['atingiu_meta'] = vendas['valor'] >= vendas['meta']
         st.dataframe(vendas)
 
-        fig, ax = plt.subplots()
+        fig, ax = plt.subplots(figsize=(10, 4))
         ax.plot(vendas['ano_mes'], vendas['valor'], label="Realizado", marker='o')
         ax.plot(vendas['ano_mes'], vendas['meta'], label="Meta", linestyle='--')
         ax.legend()
@@ -91,7 +101,7 @@ if pergunta:
         for i, valor in enumerate(previsao):
             st.markdown(f"Mês {i+1}: **R$ {valor:,.2f}**")
 
-        fig, ax = plt.subplots()
+        fig, ax = plt.subplots(figsize=(10, 4))
         ax.plot(vendas['ano_mes'], vendas['valor'], label="Histórico", marker='o')
         ax.plot(['+1', '+2', '+3'], previsao, label="Previsão", marker='x')
         ax.legend()
