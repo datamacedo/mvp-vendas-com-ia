@@ -1,0 +1,11 @@
+# Ignorar arquivos sensíveis
+.streamlit/secrets.toml
+
+# Ignorar cache e dados temporários
+__pycache__/
+*.pyc
+
+# Ignorar ambientes virtuais
+venv/
+.env/
+.env.*
